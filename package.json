@@ -4,12 +4,25 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
-    "start": "nodemon src/server"
+    "start": "nodemon src/server",
+    "lint": "eslint src/** --fix --quiet"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FransKarla/aulas-js.git"
   },
   "author": "Karla <https://github.com/FransKarla>",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
+    "mongodb": "^4.1.1",
     "nodemon": "^2.0.12"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.24.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.1.0"
   }
 }
