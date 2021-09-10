@@ -1,15 +1,29 @@
 const express = require('express')
 
-const { MongoClient } = require('mongodb')
+const { MongoClient, ObjectId } = require('mongodb')
 
-let users
+let users, subjects
 
 const app = express()
 
 app.use(express.json())
 
+const MongoHelper = {
+  stringToObjectId: (value) => {
+    try {
+      return new ObjectId(value)
+    } catch (error) {
+      return null
+    }
+  },
+  ObjectIdToString: (value) => {
+    return value.toHexString()
+  }
+}
+
 MongoClient.connect('mongodb://localhost:27017/teste').then((cli) => {
   users = cli.db().collection('users')
+  subjects = cli.db().collection('subjects')
 
   app.listen(3000, () => {
     console.log('server on port 3000')
@@ -46,8 +60,6 @@ MongoClient.connect('mongodb://localhost:27017/teste').then((cli) => {
 // }
 
 app.post('/login', (req, res) => {
-  console.log(req.body)
-
   if (typeof req.body.username !== 'string' || typeof req.body.password !== 'string') {
     res.status(400).send('Parâmetros inválidos')
     return
@@ -72,20 +84,25 @@ app.post('/login', (req, res) => {
   })
 })
 
-app.post('/user', (req, res) => {
-  console.log(req.body)
+// Create Read Update Delete - CRUD users
 
-  const requiresFields = ['username', 'email', 'password', 'passwordConfirmation']
+app.post('/user', (req, res) => {
+  const requiresFields = ['username', 'email', 'password', 'passwordConfirmation', 'role']
 
   for (const key of requiresFields) {
     if (typeof req.body[key] !== 'string') {
-      res.status(400).send(`Parâmetro inválido: ${key}`)
+      res.status(400).send(`Campo obrigatório: ${key}`)
       return
     }
   }
 
   if (req.body.password !== req.body.passwordConfirmation) {
     res.status(400).send('Confirmação de senha incorreta!')
+    return
+  }
+
+  if (req.body.role !== 'aluno' && req.body.role !== 'professor') {
+    res.status(400).send('Cargo inválido!')
     return
   }
 
@@ -100,7 +117,8 @@ app.post('/user', (req, res) => {
     users.insertOne({
       username: req.body.username,
       email: req.body.email,
-      password: req.body.password
+      password: req.body.password,
+      role: req.body.role
     }).then((result) => {
       res.send('Ok')
     }).catch(() => {
@@ -179,4 +197,44 @@ app.get('/user', (req, res) => {
   }).catch(() => {
     res.send('Error!')
   })
+})
+
+// Create Read Update Delete - CRUD subjects
+
+app.post('/subject', (req, res) => {
+  const requiresFields = ['name', 'description', 'teacher', 'workload']
+
+  for (const key of requiresFields) {
+    if (typeof req.body[key] !== 'string') {
+      res.status(400).send(`Campo obrigatório: ${key}`)
+      return
+    }
+  }
+
+  users.findOne({ _id: MongoHelper.stringToObjectId(req.body.teacher) })
+    .then(result => {
+      if (!result) {
+        res.status(404).send('Professor não encontrado!')
+        return
+      }
+
+      subjects.insertOne({
+        name: req.body.name,
+        descripion: req.body.description,
+        teacher: MongoHelper.stringToObjectId(req.body.teacher),
+        workload: req.body.workload
+      }).then((result) => {
+        res.send('Ok')
+      }).catch(() => {
+        res.send('Error')
+      })
+    }).catch(() => {
+      res.send('Error')
+    })
+
+  // users.push({
+  //   username: req.body.username,
+  //   email: req.body.email,
+  //   password: req.body.password
+  // })
 })
